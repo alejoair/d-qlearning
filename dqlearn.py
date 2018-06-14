@@ -11,23 +11,24 @@ from sklearn.preprocessing import MinMaxScaler
 
 #Configuracion del modelo
 
-max_ep = 4000
+max_ep = 30000
 epsilon = 0.1
-epsilon_min = 1
+epsilon_min = 0.1
 epsilon_decay=0.9999
-gamma = 0.9
+gamma = 0.99
 
-cantidad = 1
-cantidadfit = 2
+cantidad = 32
+cantidadfit = 500
 
 #--------------------------------
 
-cargar = True      #Cargar los pesos del entrenamiento
-render = True      #Renderizar el environment
-guardar = False    #Guardar los pesos al entrenar
-plot = False         #Ver grafico del estado
+cargar = True                 #Cargar los pesos del entrenamiento
+guardar = True                    #Guardar los pesos al entrenar
+nombre_archivo = "pesos.h5"
+render = False                 #Renderizar el environment
+plot = False                         #Ver grafico del estado
 
-memoria = rl.Memoria(cantidadfit * 2) #Crea memoria para el replay
+memoria = rl.Memoria(cantidadfit * 5) #Crea memoria para el replay
 minmax1 = MinMaxScaler()
 minmax2 = MinMaxScaler()
 
@@ -35,19 +36,21 @@ minmax2 = MinMaxScaler()
 #---------------------------------
 
 model = Sequential()
-model.add(Dense(8,input_dim=4,activation="hard_sigmoid"))
+model.add(Dense(16,input_dim=4,activation="hard_sigmoid"))
+model.add(Dense(16,activation="hard_sigmoid"))
 model.add(Dense(8,activation="hard_sigmoid"))
-model.add(Dense(2,activation="softplus"))
+model.add(Dense(2,activation="linear"))
 
-adam = optimizers.adam(lr=0.002)
-model.compile(optimizer=adam,loss="mse",metrics=["acc"])
+adam = optimizers.adam(lr=0.0002)
+model.compile(optimizer=adam,loss="mse")
 
 #DEFIniR MODELO-------------------
 #---------------------------------
 try:
-    model.load_weights('pesos.h5') #Cargar los pesos si existe el archivo
-    print("Pesos cargados")
-    print("\n -----------")
+    if cargar==True:
+        model.load_weights(nombre_archivo) #Cargar los pesos si existe el archivo
+        print("Pesos cargados")
+        print("\n -----------")
 except:
 
     print("No hay pesos guardados")
@@ -89,22 +92,25 @@ while True:
     y3.append(estado_[2]) #
     y4.append(estado_[3]) #
 
-    reward = 1 - (abs(estado_[2])*4 + abs(estado_[3])*2 + abs(estado_[0])*3 ) # Da valor al reward
+    reward = reward - (abs(estado_[2]) + abs(estado_[3]) + abs(estado_[0])) # Da valor al reward
 
     estado_ = np.reshape(estado_,[1,4])
 
 
     if done == True:
+        pass
 
-        reward = -100
 
 
     #Genera el target para el entrenamiento de la red
     p = model.predict(estado)
-    p_max = model.predict(estado)
-    p_max = np.argmax(p_max[0])
+    p_max = model.predict(estado_)
+
+    p_max = np.amax(p_max)
+
     target = reward + gamma*p_max
     p[0][accion] = target
+
     #--------------------------------------------------
 
     memoria.agregar(estado, accion, reward, estado_,p)  # Guarda en la memoria los valores
@@ -124,7 +130,7 @@ while True:
         tar_ = np.vstack([tar[i][0],tar_])
     tar_ = tar_[0:-1]
 
-    if render: #------------Renderiza el environment
+    if render==True: #------------Renderiza el environment
         env.render()
 
 #.------------------------------Si termina el episodio---------------
@@ -153,29 +159,14 @@ while True:
         if ep>max_ep:
             print("Entrenamiento terminado en ", ep, " Episodios")         #Termina el entrenamiento si supera el maximo de episodios
             break
-        if floor(ep % 100) == 0 and guardar:
+        if floor(ep % 100) == 0 and guardar==True:
 
             print("Pesos Guardados")
-            model.save_weights("pesos.h5")
+            model.save_weights(nombre_archivo)
 
 
         if epsilon> epsilon_min:
             epsilon *= epsilon_decay
-        mem = memoria.leer(cantidadfit)
-        a2 = mem[:cantidadfit, 0]
-        a2_ = np.zeros([1, 4])
-        for i, v in enumerate(a):
-            a2_ = np.vstack([a2[i][0], a2_])
-        a2_ = a2_[0:-1]
-
-        tar2 = mem[:cantidadfit, 4]
-        tar2_ = np.zeros([1, 2])
-        for i, v in enumerate(tar):
-            tar2_ = np.vstack([tar2[i][0], tar2_])
-        tar2_ = tar2_[0:-1]
-        minmax1.fit_transform(a2_)
-        minmax2.fit_transform(tar2_)
-
 
         model.fit(a_, tar_, verbose=0)
 
