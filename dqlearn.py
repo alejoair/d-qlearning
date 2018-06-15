@@ -25,7 +25,7 @@ cantidadfit = 500
 cargar = True                 #Cargar los pesos del entrenamiento
 guardar = True                    #Guardar los pesos al entrenar
 nombre_archivo = "pesos.h5"
-render = False                 #Renderizar el environment
+render = True                #Renderizar el environment
 plot = False                         #Ver grafico del estado
 
 memoria = rl.Memoria(cantidadfit * 5) #Crea memoria para el replay
@@ -41,7 +41,7 @@ model.add(Dense(16,activation="hard_sigmoid"))
 model.add(Dense(8,activation="hard_sigmoid"))
 model.add(Dense(2,activation="linear"))
 
-adam = optimizers.adam(lr=0.0002)
+adam = optimizers.adam(lr=0.0001)
 model.compile(optimizer=adam,loss="mse")
 
 #DEFIniR MODELO-------------------
@@ -92,7 +92,7 @@ while True:
     y3.append(estado_[2]) #
     y4.append(estado_[3]) #
 
-    reward = reward - (abs(estado_[2]) + abs(estado_[3]) + abs(estado_[0])) # Da valor al reward
+    reward = reward - (abs(estado_[2]) + abs(estado_[3]) + abs(estado_[0]) + abs(estado_[1])) # Da valor al reward
 
     estado_ = np.reshape(estado_,[1,4])
 
