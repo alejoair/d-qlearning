@@ -1,6 +1,5 @@
 # d-qlearning
-Cartpole v-1 Usando Deep Q-learning
-
+Implementacion del algoritmo Deep Q Learning - Cartpole v-1 
 Demo https://www.youtube.com/watch?v=jzCm0FRmJ2s
 
 
